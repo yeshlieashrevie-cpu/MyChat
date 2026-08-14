@@ -259,9 +259,15 @@ supabase.auth.onAuthStateChange((event, session) => {
       bootApp();
     }
   } else {
+    const wasSignedIn = !!state.user;
     state.user = null;
+    state.profile = null;
+    state.activeConversationId = null;
     el.authScreen.hidden = false;
     el.mainApp.hidden = true;
+    closeAllModals();
+    el.menuDropdown.hidden = true;
+    if (wasSignedIn) toast('Your session ended — please log in again.', 'error');
   }
 });
 
@@ -334,6 +340,10 @@ $('#myAvatarBtn').addEventListener('click', openEditProfile);
 
 function openEditProfile() {
   el.menuDropdown.hidden = true;
+  if (!state.user || !state.profile) {
+    toast('Your session ended — please log in again.', 'error');
+    return;
+  }
   el.editProfileError.hidden = true;
   el.editFullName.value = state.profile.full_name || '';
   el.editPhone.value = state.profile.phone || '';
@@ -356,6 +366,24 @@ el.saveProfileBtn.addEventListener('click', async () => {
   el.editProfileError.hidden = true;
   el.saveProfileBtn.disabled = true;
   try {
+    // Session may have quietly dropped (e.g. the OS killed a background tab
+    // while a native picker was open) while this modal stayed open. Try a
+    // one-time self-heal before giving up.
+    if (!state.user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) state.user = session.user;
+    }
+    if (!state.user) {
+      throw new Error('Your session ended — please log in again.');
+    }
+    if (!state.profile) {
+      const { data: freshProfile } = await supabase.from('profiles').select('*').eq('id', state.user.id).maybeSingle();
+      state.profile = freshProfile || null;
+    }
+    if (!state.profile) {
+      throw new Error('Could not load your profile — please refresh and try again.');
+    }
+
     let avatarUrl = state.profile.avatar_url;
     const file = el.avatarInput.files[0];
     if (file) {
@@ -952,6 +980,10 @@ el.composerForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const convId = state.activeConversationId;
   if (!convId) return;
+  if (!state.user) {
+    toast('Your session ended — please log in again.', 'error');
+    return;
+  }
   const text = el.messageInput.value.trim();
   const file = state.pendingAttachment;
   if (!text && !file) return;
