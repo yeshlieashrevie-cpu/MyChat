@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PulseChat</title>
+<meta name="description" content="A fast, minimal real-time chat, built for you.">
+<meta name="theme-color" content="#0A0912">
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="noise-layer" aria-hidden="true"></div>
+
+<!-- ============ AUTH SCREEN ============ -->
+<section id="authScreen" class="auth-screen">
+  <div class="auth-card bento-card glow-seam">
+    <div class="brand">
+      <span class="brand-mark">◆</span>
+      <span class="brand-name">Pulse<span class="accent-lime">Chat</span></span>
+    </div>
+    <p class="brand-tagline">Your line, glowing.</p>
+
+    <div class="auth-tabs" role="tablist">
+      <button type="button" class="auth-tab is-active" data-tab="login" role="tab" aria-selected="true">Log in</button>
+      <button type="button" class="auth-tab" data-tab="register" role="tab" aria-selected="false">Create account</button>
+    </div>
+
+    <form id="loginForm" class="auth-form" novalidate>
+      <label class="field">
+        <span class="field-label">Email</span>
+        <input type="email" name="email" autocomplete="email" required placeholder="you@email.com">
+      </label>
+      <label class="field">
+        <span class="field-label">Password</span>
+        <input type="password" name="password" autocomplete="current-password" required placeholder="••••••••">
+      </label>
+      <p class="form-error" id="loginError" hidden></p>
+      <button type="submit" class="btn btn-primary glow-seam">
+        <span>Log in</span>
+      </button>
+    </form>
+
+    <form id="registerForm" class="auth-form" novalidate hidden>
+      <label class="field">
+        <span class="field-label">Full name</span>
+        <input type="text" name="fullName" autocomplete="name" required placeholder="Juan Dela Cruz">
+      </label>
+      <label class="field">
+        <span class="field-label">Email</span>
+        <input type="email" name="email" autocomplete="email" required placeholder="you@email.com">
+      </label>
+      <label class="field">
+        <span class="field-label">Phone number</span>
+        <input type="tel" name="phone" autocomplete="tel" required placeholder="+63 9XX XXX XXXX">
+      </label>
+      <label class="field">
+        <span class="field-label">Password</span>
+        <input type="password" name="password" autocomplete="new-password" required minlength="6" placeholder="At least 6 characters">
+      </label>
+      <p class="form-error" id="registerError" hidden></p>
+      <button type="submit" class="btn btn-primary glow-seam">
+        <span>Create account</span>
+      </button>
+    </form>
+
+    <p class="auth-foot">By continuing you agree this app remembers you on this device.</p>
+  </div>
+</section>
+
+<!-- ============ MAIN APP ============ -->
+<div id="mainApp" class="app-shell" hidden>
+
+  <!-- SIDEBAR -->
+  <aside class="panel sidebar bento-card" id="sidebarPanel">
+    <div class="profile-bar">
+      <button class="avatar-btn" id="myAvatarBtn" title="Your profile">
+        <span class="avatar" id="myAvatar" data-initials="?"></span>
+        <span class="status-dot is-online"></span>
+      </button>
+      <div class="profile-meta">
+        <span class="profile-name" id="myName">—</span>
+        <span class="profile-sub">Online</span>
+      </div>
+      <div class="sidebar-actions">
+        <button class="icon-btn" id="installBtn" title="Install app" hidden>⇩</button>
+        <button class="icon-btn" id="menuBtn" title="Menu">⋯</button>
+      </div>
+      <div class="dropdown" id="menuDropdown" hidden>
+        <button type="button" data-action="edit-profile">Edit profile</button>
+        <button type="button" data-action="install" id="installMenuItem" hidden>Install app</button>
+        <button type="button" data-action="logout" class="danger-text">Log out</button>
+      </div>
+    </div>
+
+    <div class="search-row">
+      <input type="search" id="searchConversations" placeholder="Search chats">
+    </div>
+
+    <button class="btn btn-ghost new-chat-btn" id="newChatBtn">
+      <span class="plus-glyph">+</span> New chat
+    </button>
+
+    <ul class="conversation-list" id="conversationList" aria-label="Conversations"></ul>
+
+    <div class="empty-conversations" id="emptyConversations" hidden>
+      <p>No chats yet.</p>
+      <p class="muted">Tap “New chat” to find someone by email.</p>
+    </div>
+  </aside>
+
+  <!-- CHAT MAIN -->
+  <main class="panel chat-main bento-card" id="chatMainPanel">
+
+    <div class="empty-state" id="emptyState">
+      <span class="empty-glyph">◆</span>
+      <h2>Pick a chat, or start one</h2>
+      <p class="muted">Your messages will glow up right here.</p>
+    </div>
+
+    <div class="chat-view" id="chatView" hidden>
+      <header class="chat-header">
+        <button class="icon-btn back-btn" id="backToListBtn" title="Back">←</button>
+        <button class="chat-header-identity" id="chatHeaderIdentity">
+          <span class="avatar" id="chatAvatar" data-initials="?"></span>
+          <span class="chat-header-meta">
+            <span class="chat-header-name" id="chatHeaderName">—</span>
+            <span class="chat-header-status" id="chatHeaderStatus">—</span>
+          </span>
+        </button>
+        <button class="icon-btn" id="detailsToggleBtn" title="Chat details">ⓘ</button>
+      </header>
+
+      <div class="messages" id="messagesEl"></div>
+
+      <div class="typing-row" id="typingIndicator" hidden>
+        <span class="typing-dots"><i></i><i></i><i></i></span>
+        <span id="typingText">typing…</span>
+      </div>
+
+      <div class="reply-preview" id="replyPreview" hidden>
+        <div class="reply-preview-body">
+          <span class="reply-preview-label">Replying to <b id="replyPreviewName"></b></span>
+          <span class="reply-preview-text" id="replyPreviewText"></span>
+        </div>
+        <button type="button" class="icon-btn" id="cancelReplyBtn">✕</button>
+      </div>
+
+      <form class="composer" id="composerForm">
+        <input type="file" id="attachmentInput" accept="image/*" hidden>
+        <button type="button" class="icon-btn" id="attachBtn" title="Attach image">📎</button>
+        <div class="attachment-chip" id="attachmentChip" hidden>
+          <span id="attachmentChipName"></span>
+          <button type="button" id="clearAttachmentBtn">✕</button>
+        </div>
+        <textarea id="messageInput" rows="1" placeholder="Message…" autocomplete="off"></textarea>
+        <button type="submit" class="send-btn glow-seam" id="sendBtn" title="Send">➤</button>
+      </form>
+    </div>
+  </main>
+
+  <!-- DETAILS PANEL -->
+  <aside class="panel details-panel bento-card" id="detailsPanel" hidden>
+    <div class="details-header">
+      <h3>Chat details</h3>
+      <button class="icon-btn" id="closeDetailsBtn">✕</button>
+    </div>
+
+    <div class="details-body">
+      <div class="details-identity">
+        <span class="avatar avatar-lg" id="detailsAvatar" data-initials="?"></span>
+        <span class="details-name" id="detailsName">—</span>
+        <span class="details-sub" id="detailsSub">—</span>
+      </div>
+
+      <div class="details-section">
+        <label class="field">
+          <span class="field-label">Nickname (only you see this)</span>
+          <input type="text" id="nicknameInput" placeholder="Add a nickname">
+        </label>
+      </div>
+
+      <div class="details-section">
+        <span class="field-label">Chat color</span>
+        <div class="color-chips" id="colorChips"></div>
+      </div>
+
+      <div class="details-section" id="membersSection" hidden>
+        <span class="field-label">Members</span>
+        <ul class="members-list" id="membersList"></ul>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- ============ NEW CHAT MODAL ============ -->
+<div class="modal-backdrop" id="newChatModal" hidden>
+  <div class="modal bento-card glow-seam">
+    <div class="modal-header">
+      <h3>New chat</h3>
+      <button class="icon-btn" id="closeNewChatBtn">✕</button>
+    </div>
+    <label class="field">
+      <span class="field-label">Search by email</span>
+      <input type="search" id="userSearchInput" placeholder="name@email.com">
+    </label>
+    <ul class="user-results" id="userResults"></ul>
+    <div class="selected-users" id="selectedUsers"></div>
+    <label class="field" id="groupNameField" hidden>
+      <span class="field-label">Group name</span>
+      <input type="text" id="groupNameInput" placeholder="Name this group">
+    </label>
+    <button type="button" class="btn btn-primary glow-seam" id="createChatBtn" disabled>Start chat</button>
+  </div>
+</div>
+
+<!-- ============ EDIT PROFILE MODAL ============ -->
+<div class="modal-backdrop" id="editProfileModal" hidden>
+  <div class="modal bento-card glow-seam">
+    <div class="modal-header">
+      <h3>Edit profile</h3>
+      <button class="icon-btn" id="closeEditProfileBtn">✕</button>
+    </div>
+    <div class="edit-avatar-row">
+      <span class="avatar avatar-lg" id="editAvatarPreview" data-initials="?"></span>
+      <label class="btn btn-ghost btn-sm">
+        Change photo
+        <input type="file" id="avatarInput" accept="image/*" hidden>
+      </label>
+    </div>
+    <label class="field">
+      <span class="field-label">Full name</span>
+      <input type="text" id="editFullName">
+    </label>
+    <label class="field">
+      <span class="field-label">Phone number</span>
+      <input type="tel" id="editPhone">
+    </label>
+    <p class="form-error" id="editProfileError" hidden></p>
+    <button type="button" class="btn btn-primary glow-seam" id="saveProfileBtn">Save changes</button>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script type="module" src="script.js"></script>
+</body>
+</html>
